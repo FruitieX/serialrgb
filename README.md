@@ -3,6 +3,8 @@ serialrgb
 
 Control an RGB led strip connected to arduino via serial and socket.io!
 
+[Video](https://goo.gl/photos/5fneLfBRQtH4RcZN6)
+
 Setup
 -----
 
@@ -13,4 +15,3 @@ bower install
 npm start
 ```
 
-https://goo.gl/photos/5fneLfBRQtH4RcZN6
