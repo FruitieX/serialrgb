@@ -1,0 +1,25 @@
+{
+  "name": "serialrgb",
+  "version": "1.0.0",
+  "description": "control RGB led strip via serial",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "rgb",
+    "hardware",
+    "arduino",
+    "rgb",
+    "leds"
+  ],
+  "author": "FruitieX",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.12.4",
+    "jade": "^1.10.0",
+    "serialport": "^1.7.4",
+    "socket.io": "^1.3.5",
+    "underscore": "^1.8.3"
+  }
+}

@@ -1,0 +1,25 @@
+html
+    head
+        script(src='jquery/dist/jquery.min.js')
+        script(src='socket.io-client/socket.io.js')
+        script(src='underscore/underscore-min.js')
+        script(src='spectrum/spectrum.js')
+        link(rel='stylesheet' href='spectrum/spectrum.css')
+    body
+        input(id='colorpicker')
+        script.
+            var framerate = 60;
+            var socket = io();
+
+            $("#colorpicker").spectrum({
+                color: "#{initColor}",
+                flat: true,
+                move: _.throttle(function(color) {
+                    console.log(color);
+                    socket.emit('color', {
+                        red: color._r,
+                        green: color._g,
+                        blue: color._b
+                    });
+                }, 1/framerate * 1000)
+            });
