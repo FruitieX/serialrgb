@@ -21,18 +21,17 @@ http.listen(9191, function() {
 });
 
 io.on('connection', function(socket) {
-    socket.on('color', _.throttle(function(newColor) {
-        console.log('received ' + JSON.stringify(newColor));
+    socket.on('color', function(newColor) {
         curColor = color(newColor);
         if (!curColor) {
             curColor = color('hsl(0, 100%, 100%)');
         }
-        //updateColor();
-    }, 1/framerate * 1000));
+        updateColor();
+    });
 });
 
 var serialPort = null;
-var updateColor = function() {
+var updateColor = _.throttle(function() {
     if (!serialPort) {
         console.error('not connected to serial port!');
         return;
@@ -42,35 +41,38 @@ var updateColor = function() {
     var green = 255 * curColor.green();
     var blue = 255 * curColor.blue();
 
-    red = Math.floor(Math.max(0, Math.min(255, red)));
-    green = Math.floor(Math.max(0, Math.min(255, green)));
-    blue = Math.floor(Math.max(0, Math.min(255, blue)));
+    red = Math.max(0, Math.min(255, red));
+    green = Math.max(0, Math.min(255, green));
+    blue = Math.max(0, Math.min(255, blue));
 
-    var s = 'RGB\n' + red + '\n' + green + '\n' + blue + '\n';
-    console.log('sending ' + s);
-    serialPort.write(s);
-    serialPort.drain(updateColor);
-};
+    serialPort.write('R' + red + 'G' + green + 'B' + blue + '\n');
+}, 1/framerate * 1000);
 
 var SerialPort = require('serialport').SerialPort;
 
 var openSerialPort = function(err) {
-    console.log('opening serial port' + (err ? (' after error: ' + err) : ''));
     if (serialPort) {
         serialPort.close(function() {
             serialPort = null;
-            openSerialPort();
+            setTimeout(openSerialPort, 1000);
         });
     } else {
-        serialPort = new SerialPort('/dev/ttyUSB1', {
+        serialPort = new SerialPort('/dev/ttyUSB0', {
             baudrate: 115200
         }, false);
 
-        serialPort.on('error', openSerialPort);
+        serialPort.on('error', function(err) {
+            setTimeout(function() {
+                console.log('serial port error: ' + err);
+                console.log('retrying in 1000 ms...');
+                openSerialPort();
+            }, 1000);
+        });
         serialPort.open(function(err) {
-            updateColor();
             if (err) {
                 console.log('failed to open serial: ' + err);
+                console.log('retrying in 1000 ms...');
+                openSerialPort();
             } else {
                 console.log('serial opened');
             }

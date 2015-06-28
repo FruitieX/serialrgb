@@ -11,7 +11,7 @@ Setup
 ```
 npm install
 bower install
-# edit desired port & correct path to arduino in index.js, TODO: config file
+# edit desired port & correct path to arduino tty in index.js, TODO: config file
 npm start
 ```
 
