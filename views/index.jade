@@ -16,10 +16,6 @@ html
                 flat: true,
                 move: _.throttle(function(color) {
                     console.log(color);
-                    socket.emit('color', {
-                        red: color._r,
-                        green: color._g,
-                        blue: color._b
-                    });
+                    socket.emit('color', color.toHslString());
                 }, 1/framerate * 1000)
             });
