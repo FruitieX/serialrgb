@@ -5,14 +5,20 @@ var http = require('http').Server(app);
 var io = require('socket.io')(http);
 
 var color = require('onecolor');
-var curColor = color('hsl(0, 100%, 100%)');
+var curColor = color('hsl(0, 100%, 50%)');
 var framerate = 60;
+var allFramerate = 20;
+
+var mode = 'set';
+
+var cycleAmount = 0.0001;
 
 app.set('view engine', 'jade');
 
 app.get('/', function(req, res) {
     res.render('index', {
-        initColor: curColor.hex()
+        curColor: curColor.hex(),
+        cycleAmount: cycleAmount
     });
 });
 app.use(express.static(__dirname + '/bower_components'));
@@ -20,36 +26,60 @@ http.listen(9191, function() {
     console.log('listening on 9191');
 });
 
+var sendUpdate = function(socket) {
+    socket.emit('update', {
+        curColor: curColor.css(),
+        cycleAmount: cycleAmount
+    });
+};
+
 io.on('connection', function(socket) {
+    sendUpdate(socket);
     socket.on('color', function(newColor) {
+        cycleAmount = 0;
         curColor = color(newColor);
-        if (!curColor) {
-            curColor = color('hsl(0, 100%, 100%)');
-        }
-        updateColor();
+        sendUpdate(socket.broadcast);
+    });
+    socket.on('cycleAmount', function(newCycleAmount) {
+        cycleAmount = Number(newCycleAmount);
+        sendUpdate(socket.broadcast);
     });
 });
 
-var serialPort = null;
-var updateColor = _.throttle(function() {
+var updateAll = _.throttle(function() {
+    sendUpdate(io.sockets);
+}, 1000 / allFramerate);
+
+var updateColorInterval = null;
+var startUpdateColor = function() {
+    if (updateColorInterval) {
+        clearInterval(updateColorInterval);
+        updateColorInterval = null;
+    }
     if (!serialPort) {
         console.error('not connected to serial port!');
         return;
     }
 
-    var red = 255 * curColor.red();
-    var green = 255 * curColor.green();
-    var blue = 255 * curColor.blue();
+    updateColorInterval = setInterval(function() {
+        curColor = curColor.hue(cycleAmount, true);
 
-    red = Math.max(0, Math.min(255, red));
-    green = Math.max(0, Math.min(255, green));
-    blue = Math.max(0, Math.min(255, blue));
+        var red = 255 * curColor.red();
+        var green = 255 * curColor.green();
+        var blue = 255 * curColor.blue();
 
-    serialPort.write('R' + red + 'G' + green + 'B' + blue + '\n');
-}, 1/framerate * 1000);
+        red = Math.max(0, Math.min(255, red));
+        green = Math.max(0, Math.min(255, green));
+        blue = Math.max(0, Math.min(255, blue));
+
+        updateAll();
+        serialPort.write('R' + red + 'G' + green + 'B' + blue + '\n');
+    }, 1/framerate * 1000);
+};
 
 var SerialPort = require('serialport').SerialPort;
 
+var serialPort = null;
 var openSerialPort = function(err) {
     if (serialPort) {
         serialPort.close(function() {
@@ -75,6 +105,7 @@ var openSerialPort = function(err) {
                 openSerialPort();
             } else {
                 console.log('serial opened');
+                startUpdateColor();
             }
         });
     }

@@ -5,17 +5,31 @@ html
         script(src='underscore/underscore-min.js')
         script(src='spectrum/spectrum.js')
         link(rel='stylesheet' href='spectrum/spectrum.css')
-    body
+        link(rel='stylesheet' href='styles.css')
+    body(id='background')
         input(id='colorpicker')
+        div(id='cycleAmountBg')
+            input(type='range' id='cycleAmount' min='0' max='0.005' step='0.0001' value='0')
         script.
             var framerate = 60;
             var socket = io();
 
-            $("#colorpicker").spectrum({
-                color: "#{initColor}",
+            $('#colorpicker').spectrum({
+                color: "#{curColor}",
                 flat: true,
                 move: _.throttle(function(color) {
-                    console.log(color);
                     socket.emit('color', color.toHslString());
+                    $('#background').css('background-color', color.toHslString());
                 }, 1/framerate * 1000)
+            });
+
+            $('#cycleAmount').on('input', function() {
+                socket.emit('cycleAmount', $('#cycleAmount').val());
+            });
+            $('#cycleAmount').val(#{cycleAmount});
+
+            socket.on('update', function(data) {
+                $('#cycleAmount').val(data.cycleAmount);
+                $('#colorpicker').spectrum('set', data.curColor);
+                $('#background').css('background-color', data.curColor);
             });
