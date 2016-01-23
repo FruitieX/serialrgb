@@ -17,6 +17,7 @@
   "author": "FruitieX",
   "license": "ISC",
   "dependencies": {
+    "cors": "^2.7.1",
     "express": "^4.12.4",
     "jade": "^1.10.0",
     "onecolor": "^2.5.0",

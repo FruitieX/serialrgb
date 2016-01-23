@@ -1,4 +1,5 @@
 var express = require('express');
+var cors = require('cors');
 var _ = require('underscore');
 var app = express();
 var http = require('http').Server(app);
@@ -11,7 +12,12 @@ var allFramerate = 20;
 
 var mode = 'set';
 
+var fadeTime = null;
+var fadeStart = null;
+
 var cycleAmount = 0.0001;
+
+app.use(cors());
 
 app.set('view engine', 'jade');
 
@@ -20,6 +26,21 @@ app.get('/', function(req, res) {
         curColor: curColor.hex(),
         cycleAmount: cycleAmount
     });
+});
+app.post('/fadeout/:time', function(req, res) {
+    console.log('starting fadeout');
+    fadeTime = parseInt(req.params.time); // in ms
+    fadeStart = Date.now();
+
+    // turn back on after fade out + 10 sec
+    // TODO: separate fade in function
+    setTimeout(function() {
+        console.log('resetting fade');
+        fadeTime = null;
+        fadeStart = null;
+    }, fadeTime + 10000);
+
+    res.json({message: 'ok'});
 });
 app.use(express.static(__dirname + '/bower_components'));
 http.listen(9191, function() {
@@ -64,9 +85,24 @@ var startUpdateColor = function() {
     updateColorInterval = setInterval(function() {
         curColor = curColor.hue(cycleAmount, true);
 
-        var red = 255 * curColor.red();
-        var green = 255 * curColor.green();
-        var blue = 255 * curColor.blue();
+        var color = curColor;
+
+        if (fadeTime && fadeStart) {
+            var dt = Date.now() - fadeStart;
+            var fade = dt / fadeTime;
+
+            // bound to 0, 1
+            fade = Math.min(1, Math.max(0, fade));
+
+            // invert for a fadeout
+            fade = 1 - fade;
+
+            color = color.value(fade);
+        }
+
+        var red = 255 * color.red();
+        var green = 255 * color.green();
+        var blue = 255 * color.blue();
 
         red = Math.max(0, Math.min(255, red));
         green = Math.max(0, Math.min(255, green));
