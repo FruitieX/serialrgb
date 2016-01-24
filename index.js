@@ -14,6 +14,7 @@ var mode = 'set';
 
 var fadeTime = null;
 var fadeStart = null;
+var fadeOut = true;
 
 var cycleAmount = 0.0001;
 
@@ -31,14 +32,15 @@ app.post('/fadeout/:time', function(req, res) {
     console.log('starting fadeout');
     fadeTime = parseInt(req.params.time); // in ms
     fadeStart = Date.now();
+    fadeOut = true;
 
-    // turn back on after fade out + 10 sec
-    // TODO: separate fade in function
-    setTimeout(function() {
-        console.log('resetting fade');
-        fadeTime = null;
-        fadeStart = null;
-    }, fadeTime + 10000);
+    res.json({message: 'ok'});
+});
+app.post('/fadein/:time', function(req, res) {
+    console.log('starting fadein');
+    fadeTime = parseInt(req.params.time); // in ms
+    fadeStart = Date.now();
+    fadeOut = false;
 
     res.json({message: 'ok'});
 });
@@ -87,6 +89,10 @@ var startUpdateColor = function() {
 
         var color = curColor;
 
+        var red = 255 * color.red();
+        var green = 255 * color.green();
+        var blue = 255 * color.blue();
+
         if (fadeTime && fadeStart) {
             var dt = Date.now() - fadeStart;
             var fade = dt / fadeTime;
@@ -95,18 +101,27 @@ var startUpdateColor = function() {
             fade = Math.min(1, Math.max(0, fade));
 
             // invert for a fadeout
-            fade = 1 - fade;
+            if (fadeOut) {
+                fade = 1 - fade;
+            }
 
-            color = color.value(fade);
+            fade = (Math.exp(fade) - 1) / (Math.E - 1);
+
+            red *= fade;
+            green *= fade;
+            blue *= fade;
         }
 
-        var red = 255 * color.red();
-        var green = 255 * color.green();
-        var blue = 255 * color.blue();
+        // REMOVE ME once dithering works properly
+        red = Math.ceil(red);
+        green = Math.ceil(green);
+        blue = Math.ceil(blue);
 
         red = Math.max(0, Math.min(255, red));
         green = Math.max(0, Math.min(255, green));
         blue = Math.max(0, Math.min(255, blue));
+
+        console.log(Math.round(red, 2), Math.round(green, 2), Math.round(blue, 2));
 
         updateAll();
         serialPort.write('R' + red + 'G' + green + 'B' + blue + '\n');
